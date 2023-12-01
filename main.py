@@ -34,7 +34,7 @@ def update_row(row_table):
 
 
     # дозапись словаря в конец файла
-    # write_row_to_file_in_end(row_table)
+    write_row_to_file_in_end(row_table)
     # return row_table
 
 
