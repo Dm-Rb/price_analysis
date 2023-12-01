@@ -7,31 +7,17 @@ import csv
 def update_row(row_table):
     # получить список цен из многопоточного менеджера парсеров
     prices = threading_manager(row_table['Каталожный номер'], row_table['Бренд'])
-    # сгенерировать массив со значениями процента от закупочной стоимости
-    markup_percent = []
-    for item_pool in prices:
-        key, value = list(item_pool.items())[0]
-        markup_percent.append(
-            {
-                key: round((float(value) - float(row_table['Цена'])) * 100 / float(row_table['Цена']), 1) if value else None
-            }
-        )
-    prices_dict = {}
-    [prices_dict.update(i) for i in prices]
-    prices_dict['remzona Розница'] = prices_dict.pop('remzona')
-    prices_dict['auto1 Розница'] = prices_dict.pop('auto1')
-    prices_dict['zap Розница'] = prices_dict.pop('zap')
-    prices_dict['avtoostrov Розница'] = prices_dict.pop('avtoostrov')
-    row_table.update(prices_dict)
 
-    markup_percent_dict = {}
-    [markup_percent_dict.update(i) for i in markup_percent]
-    markup_percent_dict['remzona Наценка %'] = markup_percent_dict.pop('remzona')
-    markup_percent_dict['auto1 Наценка %'] = markup_percent_dict.pop('auto1')
-    markup_percent_dict['zap Наценка %'] = markup_percent_dict.pop('zap')
-    markup_percent_dict['avtoostrov Наценка %'] = markup_percent_dict.pop('avtoostrov')
-    row_table.update(markup_percent_dict)
+    # добавить в цены с модифицироваными ключами в row_table
+    for item in prices:
+        key, value = list(item.items())[0]
+        row_table.update({key + ' Розница': value})
 
+    # добавить в разину закупочной цены с ключами в row_table
+    for item in prices:
+        key, value = list(item.items())[0]
+        value = round((float(value) - float(row_table['Цена'])) * 100 / float(row_table['Цена']), 1) if value else None
+        row_table.update({key + ' Наценка %': value})
 
     # дозапись словаря в конец файла
     write_row_to_file_in_end(row_table)
