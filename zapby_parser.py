@@ -169,6 +169,8 @@ class ZapBy(DataPool):
             if min_price:
                 # return min_price
                 cls.append_dp({"zap": float(min_price)})
+            else:
+                cls.append_dp({"zap": None})
         except Exception as _ex:
             print(_ex)
             cls.append_dp({"zap": None})
