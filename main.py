@@ -7,7 +7,6 @@ import csv
 def update_row(row_table):
     # получить список цен из многопоточного менеджера парсеров
     prices = threading_manager(row_table['Каталожный номер'], row_table['Бренд'])
-
     # сгенерировать массив со значениями процента от закупочной стоимости
     markup_percent = []
     for item_pool in prices:
@@ -17,29 +16,25 @@ def update_row(row_table):
                 key: round((float(value) - float(row_table['Цена'])) * 100 / float(row_table['Цена']), 1) if value else None
             }
         )
-    # добавить значения списка цен в row_table
-    for item in prices:
-        if item.get('remzona', False):
-            row_table['Remzona, розница'] = item['remzona']
-        elif item.get('auto1', False):
-            row_table['Auto1, розница'] = item['auto1']
-        elif item.get('avtoostrov', False):
-            row_table['AutoOstrov, розница'] = item['avtoostrov']
-        elif item.get('zap', False):
-            row_table['Zap, розница'] = item['zap']
+    prices_dict = {}
+    [prices_dict.update(i) for i in prices]
+    prices_dict['remzona Розница'] = prices_dict.pop('remzona')
+    prices_dict['auto1 Розница'] = prices_dict.pop('auto1')
+    prices_dict['zap Розница'] = prices_dict.pop('zap')
+    prices_dict['avtoostrov Розница'] = prices_dict.pop('avtoostrov')
+    row_table.update(prices_dict)
 
-    # добавить значения процента от цен в row_table
-    for item in markup_percent:
-        if item.get('remzona', False):
-            row_table['Remzona, наценка %'] = item['remzona']
-        elif item.get('auto1', False):
-            row_table['Auto1, наценка %'] = item['auto1']
-        elif item.get('avtoostrov', False):
-            row_table['AutoOstrov, наценка %'] = item['avtoostrov']
-        elif item.get('zap', False):
-            row_table['Zap, наценка %'] = item['zap']
+    markup_percent_dict = {}
+    [markup_percent_dict.update(i) for i in markup_percent]
+    markup_percent_dict['remzona Наценка %'] = markup_percent_dict.pop('remzona')
+    markup_percent_dict['auto1 Наценка %'] = markup_percent_dict.pop('auto1')
+    markup_percent_dict['zap Наценка %'] = markup_percent_dict.pop('zap')
+    markup_percent_dict['avtoostrov Наценка %'] = markup_percent_dict.pop('avtoostrov')
+    row_table.update(markup_percent_dict)
+
+
     # дозапись словаря в конец файла
-    write_row_to_file_in_end(row_table)
+    # write_row_to_file_in_end(row_table)
     # return row_table
 
 
