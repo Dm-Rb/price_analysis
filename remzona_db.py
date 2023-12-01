@@ -157,8 +157,15 @@ class DataBase(DataPool):
                 price = self.get_price_without_brands_groups(min_suppliers_price)
                 # return price
                 DataPool.append_dp({"remzona": float(price)})
+            else:
+                DataPool.append_dp({"remzona": None})
+                # return None
 
         except Exception as ex:
             print(ex)
             # return None
             DataPool.append_dp({"remzona": None})
+
+
+db = DataBase()
+db.main_get_price('PCI1037', 'PATRON')
