@@ -45,16 +45,17 @@ class File:
 
     @classmethod
     def write_result_to_file(cls, result):
-        try:
-            file_path = cls.filename + "_result" + cls.file_extension
-            with open(file_path, 'w', encoding='utf-8', newline='') as f:
-                writer = csv.DictWriter(
-                    f, fieldnames=result[0].keys(), quoting=csv.QUOTE_NONNUMERIC, delimiter=';')
-                writer.writeheader()
-                for row in result:
+        file_path = cls.filename + "_result" + cls.file_extension
+        with open(file_path, 'w', encoding='utf-8', newline='') as f:
+            writer = csv.DictWriter(
+                f, fieldnames=result[0].keys(), quoting=csv.QUOTE_NONNUMERIC, delimiter=';')
+            writer.writeheader()
+            for row in result:
+                try:
                     writer.writerow(row)
-        except Exception as _ex:
-            print(_ex)
+                except Exception as _ex:
+                    print(_ex)
+                    continue
 
 
 class ExceptionsLogs(File):
