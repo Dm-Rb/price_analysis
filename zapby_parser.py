@@ -9,6 +9,7 @@ class ZapBy(DataPool):
 
     __session = requests.Session()
     __host = 'https://zap.by'
+    redirection = False
 
     @classmethod
     def __get_html(cls, url: str, host: bool = True, json: bool = False):
@@ -163,15 +164,23 @@ class ZapBy(DataPool):
 
     @classmethod
     def main(cls, article, brand):
+        result = {"zap": None}
         try:
             article_items = cls.search_articles_url(article, brand)
             min_price = cls.get_min_price(article_items)
             if min_price:
-                # return min_price
-                cls.append_dp({"zap": float(min_price)})
+                # return result
+                result["zap"] = float(min_price)
+                cls.append_dp(result)
             else:
-                cls.append_dp({"zap": None})
+                prices = cls.__get_ajax_content(article, brand)
+                if prices:
+                    prices = [float(i) for i in prices]
+                    result["zap"] = min(prices)
+                    cls.append_dp(result)
+                else:
+                    cls.append_dp(result)
         except Exception as _ex:
             print(_ex)
-            cls.append_dp({"zap": None})
-            # return None
+            cls.append_dp(result)
+            # return result

@@ -9,23 +9,37 @@ from shared_data_pool import DataPool
 remzona_db = DataBase()  # init
 
 
-def threading_manager(article, brand, supplier=None):
-    remzona = Thread(target=remzona_db.main_get_price, args=(article, brand, supplier,))
-    auto1 = Thread(target=Auto1By.main, args=(article, brand,))
-    autoostrov = Thread(target=AutoostrovBy.main, args=(article, brand,))
-    zap = Thread(target=ZapBy.main, args=(article, brand))
+class ThreadingManager:
 
-    remzona.start()
-    auto1.start()
-    autoostrov.start()
-    zap.start()
+    remzona_db = remzona_db
 
-    remzona.join()
-    auto1.join()
-    autoostrov.join()
-    zap.join()
+    # @classmethod
+    # def create_remzona_db(cls):  # init
+    #     cls.remzona_db = DataBase()
 
-    prices = DataPool.prices_pool.copy()
-    DataPool.clear_dp()
+    def __init__(self, article, brand, supplier=None):
+        self.prices_pool = []
+        self.purchase_price = None
+        remzona = Thread(target=self.remzona_db.main_get_price, args=(article, brand, supplier,))
+        # auto1 = Thread(target=Auto1By.main, args=(article, brand,))
+        # autoostrov = Thread(target=AutoostrovBy.main, args=(article, brand,))
+        zap = Thread(target=ZapBy.main, args=(article, brand))
 
-    return prices
+        remzona.start()
+        # auto1.start()
+        # autoostrov.start()
+        zap.start()
+
+        remzona.join()
+        # auto1.join()
+        # autoostrov.join()
+        zap.join()
+
+        self.prices_pool = DataPool.prices_pool.copy()
+        DataPool.clear_dp()
+        self.purchase_price = self.remzona_db.get_purchase_price()
+
+
+
+
+

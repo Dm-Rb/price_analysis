@@ -29,7 +29,8 @@ class DataBase(DataPool):
         self.suppliers = self.__get_suppliers()
         self.markup_exts = self.__get_markup_exts()
         # --
-        self.supplier_articles = []
+        self.supplier_articles = None
+        self.purchase_price = None
 
     def __get_suppliers(self):
         with self.connection.cursor() as cursor:
@@ -57,7 +58,7 @@ class DataBase(DataPool):
                 markups_without_brands_groups.sort(key=lambda x: x[3])
                 return markups_without_brands_groups
 
-    def get_supplier_articles(self, article, brand, supplier):
+    def __get_supplier_articles(self, article, brand, supplier):
         article = slugify(article)
         article = article.replace('-', '')
         with self.connection.cursor() as cursor:
@@ -72,7 +73,7 @@ class DataBase(DataPool):
             )
             response = cursor.fetchall()
             if response:
-                self.supplier_articles.extend(response)
+                self.supplier_articles = response
                 self.__filter_supplier_articles(brand, supplier)
 
     def __filter_supplier_articles(self, brand, supplier):
@@ -93,7 +94,7 @@ class DataBase(DataPool):
             # leave a row with minimal price
             self.supplier_articles = min(self.supplier_articles, key=lambda x: x[29])
 
-    def get_price_without_brands_groups(self):
+    def __get_price_without_brands_groups(self):
         end_r = len(self.markup_exts) - 1
         index = 0
         for i in range(end_r):
@@ -110,12 +111,22 @@ class DataBase(DataPool):
         markup = (self.supplier_articles[29] / 100) * percent
         return round(self.supplier_articles[29] + markup, 1)
 
+    def get_purchase_price(self):
+        if self.purchase_price:
+            purchase_price = self.purchase_price
+            self.purchase_price = None
+            return purchase_price
+        else:
+            return None
+
+
     def main_get_price(self, article, brand, supplier=None):
         try:
 
-            self.get_supplier_articles(article, brand, supplier)
+            self.__get_supplier_articles(article, brand, supplier)
             if self.supplier_articles:
-                price = self.get_price_without_brands_groups()
+                self.purchase_price = float(self.supplier_articles[29])
+                price = self.__get_price_without_brands_groups()
                 # return price
                 DataPool.append_dp({"remzona": float(price)})
             else:
@@ -126,6 +137,3 @@ class DataBase(DataPool):
             print(ex)
             # return None
             DataPool.append_dp({"remzona": None})
-
-
-db = DataBase()
