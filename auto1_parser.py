@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from slugify import slugify
 from brand_names_synonym import synonyms_dict
 from shared_data_pool import DataPool
+from file_manager import ExceptionsLogs
 
 
 class Auto1By(DataPool):
@@ -105,9 +106,14 @@ class Auto1By(DataPool):
                     item_min_price = min(filtered_items, key=lambda x: x['min_price'])
                     # return item_min_price['min_price']
                     cls.append_dp({"auto1": item_min_price['min_price']})
+                else:
+                    # return item_min_price['min_price']
+
+                    cls.append_dp({"auto1": None})
 
         except Exception as _ex:
             print(_ex)
             # return None
+            ExceptionsLogs.write_log()
             cls.append_dp({"auto1": None})
 

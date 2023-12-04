@@ -1,7 +1,8 @@
 from configparser import ConfigParser
 import os
 import csv
-
+import json
+from datetime import datetime
 
 class File:
 
@@ -39,13 +40,44 @@ class File:
         with open(cls.filename + cls.file_extension, 'r', encoding='utf-8') as r_file:
             file_reader = csv.DictReader(r_file, delimiter=cls.delimiter)
             file_data = list(file_reader)
-            cls.__create_empty_result_file(file_data[0])
+            # cls.__create_empty_result_file(file_data[0])
             return file_data
 
     @classmethod
-    def __create_empty_result_file(cls, row):
-        with open(cls.filename + "_result" + cls.file_extension, 'w', encoding='utf-8', newline='') as f:
-            file_writer = csv.writer(f, delimiter=cls.delimiter, lineterminator="\r")
-            row = list(row.keys()) + ['Remzona, розница', 'Auto1, розница', 'AutoOstrov, розница', 'Zap, розница']
-            row += ['Remzona, наценка %', 'Auto1, наценка %', 'AutoOstrov, наценка %', 'Zap, наценка %']
-            file_writer.writerow(row)
+    def write_result_to_file(cls, result):
+        try:
+            file_path = cls.filename + "_result" + cls.file_extension
+            with open(file_path, 'w', encoding='utf-8', newline='') as f:
+                writer = csv.DictWriter(
+                    f, fieldnames=result[0].keys(), quoting=csv.QUOTE_NONNUMERIC, delimiter=';')
+                writer.writeheader()
+                for row in result:
+                    writer.writerow(row)
+        except Exception as _ex:
+            print(_ex)
+
+
+class ExceptionsLogs(File):
+
+    @classmethod
+    def write_log(cls, *args):
+        log_path = cls.filename + '.json'
+        args = list(args).append(datetime.now())
+        if os.path.exists(log_path):
+            with open(log_path, 'r', encoding='utf-8', newline='') as f:
+                data = json.load(f)
+            data.append(args)
+            with open(log_path, 'w', encoding='utf-8', newline='') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        else:
+            with open(log_path, 'w', encoding='utf-8', newline='') as f:
+                json.dump([args], f, ensure_ascii=False, indent=2)
+
+
+
+
+
+
+
+
+

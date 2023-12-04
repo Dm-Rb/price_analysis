@@ -7,7 +7,7 @@ from shared_data_pool import DataPool
 class DataBase(DataPool):
 
     @staticmethod
-    def read_db_config(filename='config.ini', section='mysql') -> dict:
+    def __read_db_config(filename='config.ini', section='mysql') -> dict:
         # create parser and read ini configuration file
         parser = ConfigParser()
         parser.read(filename)
@@ -23,31 +23,27 @@ class DataBase(DataPool):
 
         return db_config
 
-    @staticmethod
-    def filter_values(value_1: str, value_2: str):
-
-        items = [value_1, value_2]
-        for i in (0, 1):
-            items[i] = slugify(items[i])
-            items[i] = items[i].replace('-', '')
-
-        if items[0] in items[1] or items[1] in items[0]:
-            return True
-        else:
-            return False
-
     def __init__(self):
-        dbconfig = self.read_db_config()
+        dbconfig = self.__read_db_config()
         self.connection = MySQLConnection(**dbconfig)
-        self.markups_without_brands_groups = None
-        self.get_catalog_markup_exts()
+        self.suppliers = self.__get_suppliers()
+        self.markup_exts = self.__get_markup_exts()
+        # --
+        self.supplier_articles = []
 
-        # attrs db
-        self.filtered_catalog_articles_rows = []
-        self.catalog_supplier_articles = []
-        self.catalog_supplier_prices = []
+    def __get_suppliers(self):
+        with self.connection.cursor() as cursor:
+            cursor.execute(
+                f"""
+                    SELECT * FROM `catalog_suppliers`
+                    ;
+                """
+            )
+            response = cursor.fetchall()
+            if response:
+                return response
 
-    def get_catalog_markup_exts(self):
+    def __get_markup_exts(self):
         with self.connection.cursor() as cursor:
             cursor.execute(
                 f"""
@@ -57,109 +53,74 @@ class DataBase(DataPool):
             )
             response = cursor.fetchall()
             if response:
-                self.markups_without_brands_groups = list(filter(lambda i: (not i[1]) and (not i[2]), response))
-                self.markups_without_brands_groups.sort(key=lambda x: x[3])
+                markups_without_brands_groups = list(filter(lambda i: (not i[1]) and (not i[2]), response))
+                markups_without_brands_groups.sort(key=lambda x: x[3])
+                return markups_without_brands_groups
 
-    def catalog_articles_get_rows(self, article_name):
-        article_name = slugify(article_name).replace('-', '')
+    def get_supplier_articles(self, article, brand, supplier):
+        article = slugify(article)
+        article = article.replace('-', '')
         with self.connection.cursor() as cursor:
             cursor.execute(
                 f"""
-                    SELECT * FROM catalog_articles
-                    WHERE art_code = '{article_name}';
+                    SELECT * FROM `catalog_supplier_articles`
+                    JOIN catalog_supplier_brands ON sbr_id = sar_sbr_id
+                    JOIN catalog_suppliers ON sup_id = sbr_sup_id
+                    JOIN catalog_supplier_prices ON pri_sar_id = sar_id
+                    WHERE `sar_code` LIKE '{article}'
                     """
             )
             response = cursor.fetchall()
             if response:
-                return response
+                self.supplier_articles.extend(response)
+                self.__filter_supplier_articles(brand, supplier)
 
-    def catalog_supplier_brands_get_rows(self,  art_brand_id):
-        with self.connection.cursor() as cursor:
-            cursor.execute(
-                f"""
-                    SELECT * FROM catalog_supplier_brands
-                    WHERE sbr_brand_id = '{art_brand_id}';
-                    """
-            )
-            response = cursor.fetchall()
-            if response:
-                return response
+    def __filter_supplier_articles(self, brand, supplier):
 
-    def get_and_filter_articles_rows(self, article_name, brand_name):
-        catalog_articles = self.catalog_articles_get_rows(article_name)
-        if catalog_articles:
-            for item in catalog_articles:
-                brand_rows_list = self.catalog_supplier_brands_get_rows(item[1])
-                if brand_rows_list:
-                    if any([self.filter_values(brand_name, i[2]) for i in brand_rows_list]):
-                        self.filtered_catalog_articles_rows.append(item)
+        # filtering by supplier
+        if supplier:
+            self.supplier_articles = list(filter(lambda x: x[16].lower() == supplier.lower(), self.supplier_articles))
 
-    def catalog_supplier_articles_get_rows(self):
-        for item in self.filtered_catalog_articles_rows:
-            if item:
-                with self.connection.cursor() as cursor:
-                    cursor.execute(
-                        f"""
-                            SELECT * FROM catalog_supplier_articles
-                            WHERE sar_art_id = '{item[0]}';
-                            """
-                    )
-                    response = cursor.fetchall()
-                    if response:
-                        self.catalog_supplier_articles.extend(response)
+        # filtering by brand
+        if '/' in brand or ' ' in brand or '':
+            brand_split = brand.split('/')
+        else:
+            brand_split = [brand]
+        brand_split = [slugify(i).replace('-', '') for i in brand_split]
+        if self.supplier_articles:
+            self.supplier_articles = list(
+                filter(lambda x: any([i in x[9] for i in brand_split]), self.supplier_articles))
+            # leave a row with minimal price
+            self.supplier_articles = min(self.supplier_articles, key=lambda x: x[29])
 
-    def catalog_supplier_prices_get_rows(self):
-        for item in self.catalog_supplier_articles:
-            if item:
-                with self.connection.cursor() as cursor:
-                    cursor.execute(
-                        f"""
-                            SELECT * FROM catalog_supplier_prices
-                            WHERE pri_sar_id = '{item[0]}';
-                            """
-                    )
-                    response = cursor.fetchall()
-                    if response:
-                        self.catalog_supplier_prices.extend(response)
-
-    def get_min_suppliers_price(self):
-        prices = [i[4] for i in self.catalog_supplier_prices]
-        if prices:
-            return min([i[4] for i in self.catalog_supplier_prices])
-
-    def get_price_without_brands_groups(self, min_suppliers_price):
-        end_r = len(self.markups_without_brands_groups) - 1
+    def get_price_without_brands_groups(self):
+        end_r = len(self.markup_exts) - 1
         index = 0
         for i in range(end_r):
-            first = self.markups_without_brands_groups[i][3]
-            last = self.markups_without_brands_groups[i + 1][3]
-            if min_suppliers_price >= first and min_suppliers_price < last:
+            first = self.markup_exts[i][3]
+            last = self.markup_exts[i + 1][3]
+
+            if self.supplier_articles[29] >= first and self.supplier_articles[29] < last:
                 index = i
                 break
             if i == end_r - 1:
                 index = i + 1
 
-        percent = self.markups_without_brands_groups[index][4]
-        markup = (min_suppliers_price / 100) * percent
-        return round(min_suppliers_price + markup, 1)
+        percent = self.markup_exts[index][4]
+        markup = (self.supplier_articles[29] / 100) * percent
+        return round(self.supplier_articles[29] + markup, 1)
 
-    def main_get_price(self, article_name, brand_name):
+    def main_get_price(self, article, brand, supplier=None):
         try:
-            self.get_and_filter_articles_rows(article_name, brand_name)
-            self.catalog_supplier_articles_get_rows()
-            self.catalog_supplier_prices_get_rows()
-            min_suppliers_price = self.get_min_suppliers_price()
 
-            self.filtered_catalog_articles_rows.clear()
-            self.catalog_supplier_articles.clear()
-            self.catalog_supplier_prices.clear()
-            if min_suppliers_price:
-                price = self.get_price_without_brands_groups(min_suppliers_price)
+            self.get_supplier_articles(article, brand, supplier)
+            if self.supplier_articles:
+                price = self.get_price_without_brands_groups()
                 # return price
                 DataPool.append_dp({"remzona": float(price)})
             else:
-                DataPool.append_dp({"remzona": None})
                 # return None
+                DataPool.append_dp({"remzona": None})
 
         except Exception as ex:
             print(ex)
@@ -168,4 +129,3 @@ class DataBase(DataPool):
 
 
 db = DataBase()
-db.main_get_price('PCI1037', 'PATRON')

@@ -9,8 +9,8 @@ from shared_data_pool import DataPool
 remzona_db = DataBase()  # init
 
 
-def threading_manager(article, brand):
-    remzona = Thread(target=remzona_db.main_get_price, args=(article, brand,))
+def threading_manager(article, brand, supplier=None):
+    remzona = Thread(target=remzona_db.main_get_price, args=(article, brand, supplier,))
     auto1 = Thread(target=Auto1By.main, args=(article, brand,))
     autoostrov = Thread(target=AutoostrovBy.main, args=(article, brand,))
     zap = Thread(target=ZapBy.main, args=(article, brand))
