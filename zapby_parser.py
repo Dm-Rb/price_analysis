@@ -77,11 +77,11 @@ class ZapBy(DataPool):
             if keys:
                 parts = response_json['data']['parts']
                 for key in keys:
-                    if brand in key:
+                    if slugify(brand).replace('-', '') in slugify(key).replace('-', ''):
                         try:
                             soup = BeautifulSoup(parts[key]['prices'], 'html.parser')
                             register_price = soup.find_all('tr', class_='pr-ws')
-                            [result_list.append(float(i['data-price'])) for i in register_price]
+                            [result_list.append(i['data-price'].replace(' ', '')) for i in register_price]
 
                         except Exception as _ex:
                             print(_ex)
@@ -162,6 +162,8 @@ class ZapBy(DataPool):
         if prices:
             return min(prices)
 
+
+
     @classmethod
     def main(cls, article, brand):
         result = {"zap": None}
@@ -173,14 +175,19 @@ class ZapBy(DataPool):
                 result["zap"] = float(min_price)
                 cls.append_dp(result)
             else:
-                prices = cls.__get_ajax_content(article, brand)
-                if prices:
-                    prices = [float(i) for i in prices]
-                    result["zap"] = min(prices)
+                url = f"/{slugify(brand).replace(' ','')}/{slugify(article).replace(' ','')}"
+                price = cls.get_article_price_from_page(article, brand, url)
+                if price:
+                    result["zap"] = float(price.replace(' ', ''))
+                    # return result
                     cls.append_dp(result)
                 else:
                     cls.append_dp(result)
+
         except Exception as _ex:
             print(_ex)
             cls.append_dp(result)
             # return result
+
+# ZapBy.main('F 026 002 572', 'BOSCH')
+# print(DataPool.prices_pool)

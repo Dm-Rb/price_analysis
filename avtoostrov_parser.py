@@ -150,3 +150,4 @@ class AutoostrovBy(DataPool):
             print(_ex)
             # return None
             cls.append_dp({"avtoostrov": None})
+

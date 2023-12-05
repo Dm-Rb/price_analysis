@@ -13,3 +13,4 @@ class DataPool:
     @classmethod
     def clear_dp(cls):
         cls.prices_pool.clear()
+

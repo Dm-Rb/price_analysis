@@ -137,3 +137,13 @@ class DataBase(DataPool):
             print(ex)
             # return None
             DataPool.append_dp({"remzona": None})
+
+    # def update_db(self):
+    #     with self.connection.cursor() as cursor:
+    #         cursor.execute(
+    #             f"""
+    #                 CREATE TABLE adminUsers LIKE users;
+    #                 INSERT INTO adminUsers SELECT * FROM adminUsers;
+    #
+    #             """
+

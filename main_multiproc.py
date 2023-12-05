@@ -43,9 +43,12 @@ if __name__ == "__main__":
     File()
     len_file_data = len(File.main_file_data)
     processes_quantity = 2
-    for i in range(0, len_file_data, processes_quantity):
-        generate_processes((File.main_file_data[i], result_list), (File.main_file_data[i + 1], result_list))
-
+    for i in range(9346, len_file_data, processes_quantity):
+        print(i, len_file_data)
+        if i == len_file_data - 1:
+            generate_processes((File.main_file_data[i], result_list))
+        else:
+            generate_processes((File.main_file_data[i], result_list), (File.main_file_data[i + 1], result_list))
 
     File.write_result_to_file(result_list)
     end_time = time.time()

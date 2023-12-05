@@ -73,12 +73,3 @@ class ExceptionsLogs(File):
         else:
             with open(log_path, 'w', encoding='utf-8', newline='') as f:
                 json.dump([args], f, ensure_ascii=False, indent=2)
-
-
-
-
-
-
-
-
-

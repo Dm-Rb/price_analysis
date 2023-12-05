@@ -39,7 +39,3 @@ class ThreadingManager:
         DataPool.clear_dp()
         self.purchase_price = self.remzona_db.get_purchase_price()
 
-
-
-
-
