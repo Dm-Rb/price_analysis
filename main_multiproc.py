@@ -43,7 +43,7 @@ if __name__ == "__main__":
     File()
     len_file_data = len(File.main_file_data)
     processes_quantity = 2
-    for i in range(9346, len_file_data, processes_quantity):
+    for i in range(0, len_file_data, processes_quantity):
         print(i, len_file_data)
         if i == len_file_data - 1:
             generate_processes((File.main_file_data[i], result_list))
